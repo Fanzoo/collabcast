@@ -1,0 +1,36 @@
+{
+  "logLevel": "info",
+
+  "collaboard": {
+    "baseUrl": "http://collaboard.example.org:8080"
+  },
+
+  "listen": {
+    "host": "0.0.0.0",
+    "port": 9080,
+    "path": "/collabcast"
+  },
+
+  "signing": {
+    "secret": "env:COLLABCAST_SIGNING_SECRET"
+  },
+
+  "targets": {
+    "team-chat": {
+      "connector": "matrix",
+      "homeserver": "http://127.0.0.1:8008",
+      "accessToken": "env:MATRIX_ACCESS_TOKEN",
+      "room": "#collaboard:example.org"
+    }
+  },
+
+  "routes": [
+    {
+      "name": "card activity",
+      "when": {
+        "events": ["card.created", "card.moved"]
+      },
+      "to": ["team-chat"]
+    }
+  ]
+}

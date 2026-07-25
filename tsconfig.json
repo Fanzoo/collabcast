@@ -1,0 +1,35 @@
+{
+  // Collabcast is plain JavaScript that runs directly on Node — there is no build
+  // step and no emitted output. TypeScript is here purely as a checker, over the
+  // .mjs sources and the hand-written contract in types.d.ts.
+  //
+  //   npm run typecheck
+  //
+  "compilerOptions": {
+    "target": "es2023",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["es2023"],
+    "types": ["node"],
+
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+
+    "strict": true,
+
+    // Annotating every parameter in a codebase written as JavaScript buys very
+    // little: it produced 84 mechanical errors and found no defects. The checks
+    // that matter here are the ones about shapes and nullability, which stay on.
+    "noImplicitAny": false,
+
+    // `catch (error)` gives `unknown` under strict, so every `error.message`
+    // needs a narrowing dance. Everything this codebase throws is an Error, and
+    // the alternative is noise rather than safety.
+    "useUnknownInCatchVariables": false,
+
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.mjs", "test/**/*.mjs", "types.d.ts"]
+}

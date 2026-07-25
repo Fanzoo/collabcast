@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 22 is the floor declared in package.json; 24 is current.
+        node: ["22", "24"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # Runtime dependencies must stay at zero — that's the promise. devDependencies
+      # are allowed (TypeScript is used as a checker), so this guards only `dependencies`.
+      - name: Assert zero runtime dependencies
+        run: |
+          node -e '
+            const pkg = require("./package.json");
+            const deps = Object.keys(pkg.dependencies ?? {});
+            if (deps.length) {
+              console.error("expected no runtime dependencies, found:", deps.join(", "));
+              process.exit(1);
+            }
+          '
+
+      # The sources run straight from src/ with no build, so prove that before
+      # anything is installed: if this needs node_modules, the claim is broken.
+      - name: Run with nothing installed
+        env:
+          COLLABCAST_SIGNING_SECRET: 0123456789abcdef0123456789abcdef
+          MATRIX_ACCESS_TOKEN: syt_ci_placeholder
+        run: node src/index.mjs --check --config config.example.json
+
+      - name: Install dev toolchain
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
