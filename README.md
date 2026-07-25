@@ -240,7 +240,7 @@ once, however many routes selected it.
 | `listen.maxBodyBytes` | `1048576` | Requests larger than this are refused with 413 instead of being buffered. |
 | `signing.secret` | *(unset)* | The HMAC key, matching the secret on the Collaboard subscription. When set, an unsigned or wrongly-signed delivery is refused with 401. When unset, deliveries are accepted unverified and Collabcast warns loudly at startup. Write it as `env:NAME`. |
 | `delivery.attempts` | `4` | Send attempts per target per event, including the first. An error a connector marks permanent (a bad token, a room it can't post to) stops the retries early — retrying cannot fix either. |
-| `delivery.backoffMs` | `1000` | Base wait before the first retry, doubling per attempt with jitter. A destination that says exactly how long to wait (Matrix's `retry_after_ms`) overrides this. |
+| `delivery.backoffMs` | `1000` | Base wait before the first retry, doubling per attempt with jitter. A destination that says exactly how long to wait (Matrix's `retry_after_ms`) overrides this, up to a one-minute ceiling. |
 | `dedupe.capacity` | `2048` | How many recent `eventId`s to remember. Large enough to absorb a retry storm; bounded so it can't grow without limit. |
 | `targets` | *(required)* | Named destinations. See [Targets](#targets). |
 | `routes` | *(required)* | Which events go where. See [Routes](#routes). |

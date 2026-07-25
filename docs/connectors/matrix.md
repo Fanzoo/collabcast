@@ -210,7 +210,8 @@ then rides in every message.
 
 ## Confirming it works
 
-At startup the connector checks the token and resolves the room:
+Just after the receiver starts listening, the connector checks the token and resolves the
+room:
 
 ```
 2026-07-25T12:00:00.000Z [INF] target preflight ok target=team-chat user=@collabcast:example.org room=!AbCdEf:example.org
@@ -243,7 +244,7 @@ cause:
 | `401 M_UNKNOWN_TOKEN` | The access token is wrong, or its device was logged out. Marked permanent — not retried. |
 | `403 M_FORBIDDEN` | The bot isn't in the room, or can't send to it. Check it accepted the invite, and that its power level clears the room's `events_default`. Marked permanent. |
 | `404 M_NOT_FOUND` on an alias | The alias doesn't exist on that server. Check the spelling, including the part after the colon. |
-| `429 M_LIMIT_EXCEEDED` | Rate limited. The homeserver's `retry_after_ms` is honoured exactly rather than guessed at. |
+| `429 M_LIMIT_EXCEEDED` | Rate limited. The homeserver's `retry_after_ms` is honoured rather than guessed at, up to a one-minute ceiling. |
 | `cannot reach homeserver` | Connection refused, DNS failure, or timeout. Retried with backoff. |
 
 Permanent errors are not retried, because retrying can't fix them — they're logged once at

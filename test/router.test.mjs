@@ -94,3 +94,13 @@ test("no matching route yields no targets", () => {
   const routes = [{ name: "a", when: { events: ["card.moved"] }, to: ["chat"] }];
   assert.deepEqual(route(event("comment.created"), routes).targets, []);
 });
+
+test("a board allowlist does not leak events that arrive without a slug", () => {
+  // The ping exemption is for the ping, not for "no slug" — an event that turns up
+  // slugless for any other reason must not slip past a board-scoped route.
+  const when = { boards: ["research"] };
+  assert.equal(matches(event("card.created", { boardSlug: "" }), when), false);
+  assert.equal(matches(event("card.created", { boardSlug: undefined }), when), false);
+  assert.equal(matches(event("card.frobnicated", { boardSlug: null }), when), false);
+  assert.equal(matches(event("webhook.ping", { boardSlug: "" }), when), true);
+});

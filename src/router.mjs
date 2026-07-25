@@ -1,3 +1,5 @@
+import { PING } from "./events.mjs";
+
 /**
  * Route matching. Every condition in a route's `when` block must hold for the
  * route to match — conditions are ANDed, and an absent or empty condition means
@@ -21,8 +23,11 @@ export function matches(event, when = {}) {
   if (!matchesEventType(event.type, when.events)) return false;
 
   // A ping is not board-scoped, so a board allowlist must not swallow it — that
-  // would make the one tool for proving reachability the hardest thing to see.
-  if (when.boards?.length && event.board?.slug && !when.boards.includes(event.board.slug)) return false;
+  // would make the one tool for proving reachability the hardest thing to see. The
+  // exemption is for the ping specifically, not for "no slug": keying it off a
+  // missing slug would let any other slugless event through an allowlist that was
+  // deliberately scoped away from it.
+  if (when.boards?.length && event.type !== PING && !when.boards.includes(event.board?.slug)) return false;
 
   if (when.humanActorsOnly && !event.actor?.isHuman) return false;
 

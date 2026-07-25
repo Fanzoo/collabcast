@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 
+import { escapeHtml } from "../event.mjs";
+
 /**
  * Matrix connector — posts each event as a message into a room, over the Matrix
  * client-server API. No SDK: sending a message is one authenticated PUT.
@@ -185,7 +187,10 @@ export function open(options, ctx) {
 
     async send({ event, summary }) {
       const room = await roomId();
+      // `occurredAt` is untrusted delivery data like everything else, so the rich form
+      // gets the same escaping every token in `summary.html` already went through.
       const stamp = settings.includeOccurredAt && event.occurredAt ? ` (${event.occurredAt})` : "";
+      const stampHtml = stamp ? escapeHtml(stamp) : "";
 
       await call(
         "PUT",
@@ -197,7 +202,7 @@ export function open(options, ctx) {
             msgtype: settings.msgtype,
             body: `${summary.icon} ${summary.text}${stamp}`,
             format: "org.matrix.custom.html",
-            formatted_body: `${summary.icon} ${summary.html}${stamp}`,
+            formatted_body: `${summary.icon} ${summary.html}${stampHtml}`,
           },
         },
       );

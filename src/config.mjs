@@ -60,14 +60,22 @@ function validate(raw) {
 
   if (!isPlainObject(raw)) throw new Error("config must be a JSON object");
 
+  // A section written as something other than an object — `"listen": "0.0.0.0:9080"`,
+  // a plausible typo — spreads to nothing, so without this it would pass every check
+  // below and the process would quietly run on the defaults the operator overrode.
+  for (const key of ["collaboard", "listen", "signing", "delivery", "dedupe"]) {
+    if (raw[key] !== undefined && !isPlainObject(raw[key])) fail(`${key} must be an object`);
+  }
+  const section = (key) => (isPlainObject(raw[key]) ? raw[key] : {});
+
   /** @type {import("../types.js").Config} */
   const config = {
     logLevel: raw.logLevel ?? DEFAULTS.logLevel,
     collaboard: { baseUrl: null },
-    listen: { ...DEFAULTS.listen, ...(raw.listen ?? {}) },
-    signing: { secret: raw.signing?.secret ?? null },
-    delivery: { ...DEFAULTS.delivery, ...(raw.delivery ?? {}) },
-    dedupe: { ...DEFAULTS.dedupe, ...(raw.dedupe ?? {}) },
+    listen: { ...DEFAULTS.listen, ...section("listen") },
+    signing: { secret: section("signing").secret ?? null },
+    delivery: { ...DEFAULTS.delivery, ...section("delivery") },
+    dedupe: { ...DEFAULTS.dedupe, ...section("dedupe") },
     targets: {},
     routes: [],
     warnings: [],
@@ -78,7 +86,7 @@ function validate(raw) {
   }
 
   // collaboard.baseUrl is optional; it only enables deep links back to the board.
-  const baseUrl = raw.collaboard?.baseUrl ?? null;
+  const baseUrl = section("collaboard").baseUrl ?? null;
   if (baseUrl !== null) {
     if (typeof baseUrl !== "string") fail("collaboard.baseUrl must be a string");
     else {

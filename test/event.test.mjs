@@ -154,3 +154,13 @@ test("attachment size is rendered in human units", () => {
   );
   assert.match(summary.text, /\(50\.0 KB\)/);
 });
+
+test("an event type that names an Object.prototype member gets the fallback icon", () => {
+  // `event` is untrusted, and the icon table is looked up by it. A prototype hit
+  // would not be nullish, so it would sail past the `??` and be rendered.
+  for (const type of ["constructor", "toString", "valueOf", "hasOwnProperty", "__proto__"]) {
+    const summary = summarize(normalize(envelope(type, {})));
+    assert.equal(summary.icon, "•", `${type} should not resolve through the prototype`);
+    assert.equal(typeof summary.text, "string");
+  }
+});

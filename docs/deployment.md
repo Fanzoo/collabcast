@@ -27,7 +27,23 @@ Collabcast reads every `"env:NAME"` value in its config from the environment, so
 `config.json` holds no secrets and can live in a repo. That pushes the question to the
 supervisor: how does the process get the environment?
 
-Put them in a file only the service account can read, and have the supervisor load it:
+Put them in a file only the service account can read, and have the supervisor load it.
+Where that file goes depends on the supervisor, because the two read it as different
+users — the systemd unit below runs as `collabcast` with `ProtectHome=true`, so a copy
+in your home directory would be unreadable to it.
+
+**systemd** — a system-wide path the service user can read:
+
+```bash
+sudo install -m 700 -o collabcast -g collabcast -d /etc/collabcast
+sudo install -m 600 -o collabcast -g collabcast /dev/null /etc/collabcast/env
+sudo tee /etc/collabcast/env >/dev/null <<'EOF'
+COLLABCAST_SIGNING_SECRET=<openssl rand -hex 32>
+MATRIX_ACCESS_TOKEN=<the bot's access token>
+EOF
+```
+
+**launchd** — your own home directory, since the agent runs as you:
 
 ```bash
 install -m 700 -d ~/.collabcast
@@ -38,7 +54,7 @@ EOF
 chmod 600 ~/.collabcast/env
 ```
 
-Don't put secrets on the command line — anyone who can run `ps` can read those.
+Either way, don't put secrets on the command line — anyone who can run `ps` can read those.
 
 ---
 
@@ -81,7 +97,9 @@ sudo systemctl enable --now collabcast
 journalctl -u collabcast -f
 ```
 
-`EnvironmentFile` wants plain `KEY=value` lines with no `export` and no quotes.
+`EnvironmentFile` is the `/etc/collabcast/env` written above. It wants plain `KEY=value`
+lines with no `export` and no quotes, and it must exist — systemd fails the unit on a
+missing one unless the path is prefixed with `-`.
 
 ## launchd (macOS)
 
@@ -198,9 +216,12 @@ fdesetup supportsauthrestart   # is authrestart available?
 ## Start order doesn't matter
 
 Collabcast comes up whether or not its destinations are reachable. Each connector's preflight
-is best-effort: a failure logs a warning and startup continues, because the bridge and the
-systems it talks to are often starting at the same moment — a homeserver behind a container
-runtime can easily be a minute behind. Once traffic arrives, `dispatch` retries with backoff.
+runs after the listener is bound and doesn't block it, so the receiver is answering — and
+`/healthz` is green — before the first destination has been contacted. Preflight is
+best-effort besides: a failure logs a warning and startup continues, because the bridge and
+the systems it talks to are often starting at the same moment — a homeserver behind a
+container runtime can easily be a minute behind. Once traffic arrives, `dispatch` retries
+with backoff.
 
 The same goes for Collaboard. Collabcast is a passive listener, so Collaboard starting later
 is a non-event; the first delivery simply arrives whenever it arrives. No `After=` ordering,

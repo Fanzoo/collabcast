@@ -107,16 +107,33 @@ test("a malformed body is rejected with 400", async () => {
 test("an oversized body is rejected with 413", async () => {
   const config = { ...baseConfig, listen: { ...baseConfig.listen, maxBodyBytes: 1024 } };
   await withServer(config, () => {}, async (origin) => {
-    const body = JSON.stringify({ event: "card.created", pad: "x".repeat(4096) });
+    // Far past the socket buffers, so the client is still writing when the cap trips —
+    // the case where a naive close would strand the response.
+    const body = JSON.stringify({ event: "card.created", pad: "x".repeat(1_048_576) });
     const response = await fetch(`${origin}/collabcast`, {
       method: "POST",
       headers: { "X-Collaboard-Signature": sign(Buffer.from(body)) },
       body,
-    }).catch((error) => error);
-    // The server destroys the request once the cap is passed; either we read the
-    // 413 or the socket closes first. Both are correct refusals.
-    if (response instanceof Error) return;
+    });
+    // The refusal has to reach the client as a 413. A dropped connection would read
+    // as a transport failure, and Collaboard would retry a delivery that can never
+    // succeed.
     assert.equal(response.status, 413);
+    assert.equal((await response.text()).trim(), "payload too large");
+  });
+});
+
+test("a 204 ack carries no body framing headers", async () => {
+  await withServer(baseConfig, () => {}, async (origin) => {
+    const body = JSON.stringify({ event: "card.created" });
+    const response = await fetch(`${origin}/collabcast`, {
+      method: "POST",
+      headers: { "X-Collaboard-Signature": sign(Buffer.from(body)) },
+      body,
+    });
+    assert.equal(response.status, 204);
+    assert.equal(response.headers.get("content-length"), null);
+    assert.equal(response.headers.get("content-type"), null);
   });
 });
 

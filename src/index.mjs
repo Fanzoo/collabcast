@@ -107,13 +107,19 @@ async function main() {
   // often start at the same moment (a container runtime may still be booting), so a
   // destination being unreachable right now must not stop the receiver from coming
   // up — the retry loop in dispatch handles it once events start arriving.
-  for (const [name, target] of targets) {
-    if (typeof target.instance.preflight !== "function") continue;
-    try {
-      const detail = await target.instance.preflight();
-      log.info("target preflight ok", { target: name, ...detail });
-    } catch (error) {
-      log.warn("target preflight failed — starting anyway", { target: name, error: error.message });
+  //
+  // Run after the listener is bound, and don't block on it: an unreachable
+  // destination costs a full connector timeout per target, and doing that first
+  // would mean deliveries hitting a refused connection for as long as it takes.
+  async function preflightTargets() {
+    for (const [name, target] of targets) {
+      if (typeof target.instance.preflight !== "function") continue;
+      try {
+        const detail = await target.instance.preflight();
+        log.info("target preflight ok", { target: name, ...detail });
+      } catch (error) {
+        log.warn("target preflight failed — starting anyway", { target: name, error: error.message });
+      }
     }
   }
 
@@ -176,10 +182,17 @@ async function main() {
     })
   );
 
+  // The listen guard above is removed once bound, and a `net.Server` 'error' with no
+  // listener is thrown — an accept failure (EMFILE under load, say) would take the
+  // process down instead of being logged.
+  server.on("error", (error) => log.error("server error", { error: error.message }));
+
   log.info("listening", {
     url: `http://${config.listen.host}:${config.listen.port}${config.listen.path}`,
     signature: config.signing.secret ? "required" : "not verified",
   });
+
+  preflightTargets().catch((error) => log.warn("preflight aborted", { error: error.message }));
 
   // ---- shutdown ----
   let closing = false;

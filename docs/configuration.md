@@ -204,7 +204,10 @@ Two things shorten that loop:
   and the remaining attempts are skipped. Retrying can't fix those, and without this a bad
   credential produces `attempts` identical failures per event and buries the cause.
 - A destination that says exactly how long to wait (Matrix's `retry_after_ms`) **overrides**
-  the computed backoff. Being told and then guessing is how you get rate-limited twice.
+  the computed backoff. Being told and then guessing is how you get rate-limited twice. The
+  value is capped at one minute: it comes from the other end of the connection, and a
+  destination asking for an hour would park the delivery — and everything queued behind it —
+  for an hour.
 
 This retry loop exists because Collabcast acknowledges Collaboard *before* forwarding. That
 ordering keeps a slow destination from making Collaboard retry — which would duplicate

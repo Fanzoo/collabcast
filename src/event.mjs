@@ -36,7 +36,11 @@ export function normalize(raw) {
   };
 }
 
-const ICONS = {
+// Null-prototype: the key is `event.type`, straight off an untrusted delivery body.
+// On a plain object literal, `"constructor"` or `"toString"` would resolve through
+// the prototype chain to a function — non-nullish, so the `??` fallback below would
+// not catch it, and the function would be rendered into the message.
+const ICONS = Object.assign(Object.create(null), {
   "card.created": "🆕",
   "card.moved": "➡️",
   "card.updated": "✏️",
@@ -60,9 +64,10 @@ const ICONS = {
   "board.renamed": "✏️",
   "board.deleted": "🗑️",
   [PING]: "📡",
-};
+});
 
-const escapeHtml = (value) =>
+/** Exported so a connector can escape anything it appends to `summary.html`. */
+export const escapeHtml = (value) =>
   String(value ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

@@ -37,7 +37,12 @@ function readBody(req, limit) {
         /** @type {Error & { tooLarge?: boolean }} */
         const error = new Error(`body exceeds ${limit} bytes`);
         error.tooLarge = true;
-        req.destroy();
+        // Stop reading, but leave the socket alive: the caller still has to write a
+        // 413, and destroying here would take the response down with it — Collaboard
+        // would see a transport failure and retry a delivery that can never succeed.
+        // Pausing applies TCP backpressure, so the rest of the upload isn't buffered.
+        req.removeAllListeners("data");
+        req.pause();
         reject(error);
         return;
       }
@@ -48,10 +53,55 @@ function readBody(req, limit) {
   });
 }
 
-function respond(res, status, body = "") {
+/** How long to keep draining a refused upload before giving up on it. */
+const DRAIN_MS = 2_000;
+
+/**
+ * Discard the rest of a body we've already decided to refuse, and resolve once the
+ * client has stopped sending (or we've waited long enough).
+ *
+ * This has to finish *before* the refusal is written: a response that closes the
+ * connection makes Node tear the socket down the moment it flushes, and a client
+ * still mid-upload gets a reset instead of the status we wrote. Draining first
+ * means the reply lands on a quiet socket.
+ *
+ * Bounded on purpose — the bytes are thrown away rather than buffered, and an
+ * upload that never ends is answered anyway rather than holding a connection open.
+ *
+ * @param {import("node:http").IncomingMessage} req
+ * @returns {Promise<void>}
+ */
+function drain(req) {
+  return new Promise((done) => {
+    const deadline = setTimeout(done, DRAIN_MS);
+    deadline.unref();
+    const finish = () => {
+      clearTimeout(deadline);
+      done();
+    };
+    req.on("data", () => {});
+    req.on("end", finish);
+    req.on("error", finish);
+    req.resume();
+  });
+}
+
+/**
+ * @param {import("node:http").ServerResponse} res
+ * @param {number} status
+ * @param {string} [body]
+ * @param {Record<string, string>} [headers]
+ */
+function respond(res, status, body = "", headers = {}) {
   if (res.writableEnded) return;
-  res.writeHead(status, { "Content-Type": "text/plain; charset=utf-8", "Content-Length": Buffer.byteLength(body) });
-  res.end(body);
+  // RFC 7230 §3.3.2: a 204 carries no body, and framing headers on one are a protocol
+  // error that a strict intermediary may record as a failed delivery.
+  const framing =
+    status === 204
+      ? {}
+      : { "Content-Type": "text/plain; charset=utf-8", "Content-Length": Buffer.byteLength(body) };
+  res.writeHead(status, { ...framing, ...headers });
+  res.end(status === 204 ? undefined : body);
 }
 
 /**
@@ -117,10 +167,13 @@ export function createReceiver({ config, onEvent, log }) {
           log.error("event handler threw", { error: error.message });
         }
       })
-      .catch((error) => {
+      .catch(async (error) => {
         if (error.tooLarge) {
           log.warn("rejected delivery: body too large", { limit: maxBodyBytes });
-          respond(res, 413, "payload too large\n");
+          await drain(req);
+          // The body was refused unread, so this connection can't be reused — say so,
+          // and Node closes the socket once the 413 has been flushed.
+          respond(res, 413, "payload too large\n", { Connection: "close" });
           return;
         }
         log.warn("failed to read request body", { error: error.message });
