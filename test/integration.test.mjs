@@ -182,10 +182,13 @@ test("a signed delivery becomes a Matrix message", async (t) => {
   const origin = `http://127.0.0.1:${bridgePort}`;
   assert.match(output.join(""), new RegExp(`url=http://127\\.0\\.0\\.1:${bridgePort}/collabcast`));
 
-  await t.test("preflight resolved the room alias and the bot identity", () => {
-    const log = output.join("");
-    assert.match(log, /resolved room alias/);
-    assert.match(log, /@collabcast:example\.org/);
+  await t.test("preflight resolved the room alias and the bot identity", async () => {
+    // Preflight runs after the listener binds and does not block it, so these lines
+    // land shortly *after* "listening" rather than before it — waiting for them is
+    // the point, not an incidental convenience.
+    const log = () => output.join("");
+    assert.ok(await eventually(() => /resolved room alias/.test(log())), `preflight never resolved the alias:\n${log()}`);
+    assert.match(log(), /@collabcast:example\.org/);
   });
 
   await t.test("card.moved is delivered with both lane names and a deep link", async () => {
