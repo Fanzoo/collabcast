@@ -1,6 +1,16 @@
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
+ * Ceiling on a wait the destination asked for. A `retry_after_ms` comes from the
+ * other end of the connection, so an unreasonable one — a homeserver saying "in an
+ * hour" — must not park a delivery for that long: it would hold its slot, and every
+ * event behind it would do the same.
+ */
+export const MAX_RETRY_AFTER_MS = 60_000;
+
+const clamp = (ms) => Math.min(Math.max(ms, 0), MAX_RETRY_AFTER_MS);
+
+/**
  * Full jitter around an exponentially growing base, so a homeserver that just came
  * back doesn't get every queued retry in the same millisecond.
  */
@@ -19,7 +29,7 @@ function backoffFor(attempt, baseMs) {
  *
  * A connector can mark an error `permanent` (a bad token, a room it cannot post to)
  * to skip the remaining attempts, or set `retryAfterMs` to override the backoff when
- * the destination said exactly how long to wait.
+ * the destination said exactly how long to wait — up to `MAX_RETRY_AFTER_MS`.
  */
 export async function deliver({ target, message, attempts, backoffMs, log }) {
   const context = { target: target.name, event: message.event.type, eventId: message.event.id };
@@ -44,7 +54,9 @@ export async function deliver({ target, message, attempts, backoffMs, log }) {
         return false;
       }
 
-      const waitMs = Number.isFinite(error.retryAfterMs) ? error.retryAfterMs : backoffFor(attempt, backoffMs);
+      const waitMs = Number.isFinite(error.retryAfterMs)
+        ? clamp(error.retryAfterMs)
+        : backoffFor(attempt, backoffMs);
       log.warn("delivery failed, retrying", { ...context, attempt, retryInMs: waitMs, error: error.message });
       await sleep(waitMs);
     }

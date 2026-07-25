@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { createDedupe } from "../src/dedupe.mjs";
-import { deliver } from "../src/dispatch.mjs";
+import { deliver, MAX_RETRY_AFTER_MS } from "../src/dispatch.mjs";
 
 const silent = { info() {}, warn() {}, error() {}, debug() {} };
 const message = { event: { type: "card.created", id: "01J" }, summary: { icon: "🆕", text: "t", html: "t" } };
@@ -120,4 +120,55 @@ test("retryAfterMs from the destination is honoured", async () => {
   assert.equal(ok, true);
   assert.ok(elapsed >= 100, `expected to wait about 120ms, waited ${elapsed}ms`);
   assert.ok(elapsed < 5_000, `expected the override to win over the 60s base, waited ${elapsed}ms`);
+});
+
+test("an unreasonable retryAfterMs is clamped instead of parking the delivery", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  /** @type {number[]} */
+  const waits = [];
+  const log = { ...silent, warn: (_message, fields) => waits.push(fields.retryInMs) };
+  let calls = 0;
+  const pending = deliver({
+    target: target(async () => {
+      calls++;
+      if (calls === 1) {
+        /** @type {import("../types.js").DeliveryError} */
+        const error = new Error("rate limited");
+        // A destination asking us to wait an hour would hold its slot for an hour,
+        // and every event queued behind it would do the same.
+        error.retryAfterMs = 3_600_000;
+        throw error;
+      }
+    }),
+    message,
+    attempts: 3,
+    backoffMs: 0,
+    log,
+  });
+  // Let the first attempt fail and schedule its wait, then run the clock forward.
+  await new Promise((ready) => setImmediate(ready));
+  t.mock.timers.tick(MAX_RETRY_AFTER_MS);
+  assert.equal(await pending, true);
+  assert.deepEqual(waits, [MAX_RETRY_AFTER_MS], "the wait must be capped, not taken at face value");
+});
+
+test("a negative retryAfterMs does not become an error", async () => {
+  let calls = 0;
+  const ok = await deliver({
+    target: target(async () => {
+      calls++;
+      if (calls === 1) {
+        /** @type {import("../types.js").DeliveryError} */
+        const error = new Error("rate limited");
+        error.retryAfterMs = -1000;
+        throw error;
+      }
+    }),
+    message,
+    attempts: 3,
+    backoffMs: 0,
+    log: silent,
+  });
+  assert.equal(ok, true);
+  assert.equal(calls, 2);
 });

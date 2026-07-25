@@ -160,3 +160,12 @@ test("the shipped example config is valid", async () => {
     delete process.env.MATRIX_ACCESS_TOKEN;
   }
 });
+
+test("a section written as something other than an object is rejected", async () => {
+  // Spreading a string contributes no keys, so without a guard this would silently
+  // run on the defaults the operator thought they had overridden.
+  await rejects(await write({ ...valid, listen: "0.0.0.0:9080" }), /listen must be an object/);
+  await rejects(await write({ ...valid, delivery: 4 }), /delivery must be an object/);
+  await rejects(await write({ ...valid, dedupe: [2048] }), /dedupe must be an object/);
+  await rejects(await write({ ...valid, collaboard: "http://board.example.org" }), /collaboard must be an object/);
+});
