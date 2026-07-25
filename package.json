@@ -1,0 +1,45 @@
+{
+  "name": "collabcast",
+  "version": "0.1.0",
+  "description": "A bridge between Collaboard board events and the systems you already use.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "collabcast": "src/index.mjs"
+  },
+  "main": "src/index.mjs",
+  "types": "types.d.ts",
+  "files": [
+    "src",
+    "types.d.ts",
+    "config.example.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node src/index.mjs",
+    "check": "node src/index.mjs --check",
+    "test": "node --test \"test/*.test.mjs\"",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run typecheck && npm test"
+  },
+  "keywords": [
+    "collaboard",
+    "webhooks",
+    "matrix",
+    "bridge",
+    "kanban",
+    "notifications"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fanzoo/collabcast.git"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.9.3"
+  }
+}

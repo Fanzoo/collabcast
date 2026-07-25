@@ -141,3 +141,26 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# ---------------------------------------------------------------------------
+# Collabcast
+# ---------------------------------------------------------------------------
+
+# The live config. config.example.json is the committed template; a real config
+# is ignored even though `env:` references mean it should hold no secrets —
+# defence in depth, in case a value is ever pasted in directly.
+config.json
+config.*.json
+!config.example.json
+
+# Environment files holding the values those env: references point at.
+.env
+.env.*
+env
+
+# Local run artifacts
+logs/
+*.log
+
+# Local service definitions, which embed absolute paths and sometimes secrets
+*.plist
