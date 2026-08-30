@@ -1,9 +1,44 @@
 import { createServer } from "node:http";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-export const SIGNATURE_HEADER = "x-collaboard-signature";
-export const EVENT_HEADER = "x-collaboard-event";
-export const DELIVERY_HEADER = "x-collaboard-delivery-id";
+// Collattice v3 renamed the delivery headers from `X-Collaboard-*` to `X-Collattice-*`
+// as part of the Collaboard → Collattice rename. Both spellings are read, current first.
+//
+// Reading only the old names is exactly how this broke on the v2 → v3 upgrade, and the
+// failure is worth remembering: an unrecognised signature header arrives as `undefined`,
+// `verifySignature` refuses it on the type check, and EVERY delivery is answered 401. The
+// sender records three failed attempts and drops the event permanently, so the symptom is
+// silence — no messages, no errors on the receiving side that anyone is watching, and a
+// failure count on the sender that nobody thinks to look at.
+//
+// Accepting both is not just repair. A fleet does not upgrade every board on the same day,
+// and one bridge should not care which side of the rename a sender is on.
+export const SIGNATURE_HEADER = "x-collattice-signature";
+export const EVENT_HEADER = "x-collattice-event";
+export const DELIVERY_HEADER = "x-collattice-delivery-id";
+
+export const LEGACY_SIGNATURE_HEADER = "x-collaboard-signature";
+export const LEGACY_EVENT_HEADER = "x-collaboard-event";
+export const LEGACY_DELIVERY_HEADER = "x-collaboard-delivery-id";
+
+/**
+ * Pull the three delivery headers, preferring the current name over the legacy one.
+ * Node lowercases incoming header names, so the constants are lowercase.
+ *
+ * @param {import("node:http").IncomingHttpHeaders} headers
+ * @returns {{ signature: string | undefined, event: string | undefined, deliveryId: string | undefined }}
+ */
+export function readDeliveryHeaders(headers) {
+  const pick = (current, legacy) => {
+    const value = headers[current] ?? headers[legacy];
+    return Array.isArray(value) ? value[0] : value;
+  };
+  return {
+    signature: pick(SIGNATURE_HEADER, LEGACY_SIGNATURE_HEADER),
+    event: pick(EVENT_HEADER, LEGACY_EVENT_HEADER),
+    deliveryId: pick(DELIVERY_HEADER, LEGACY_DELIVERY_HEADER),
+  };
+}
 
 /**
  * Verify a Collaboard delivery signature: HMAC-SHA256 over the exact raw bytes of
@@ -140,10 +175,11 @@ export function createReceiver({ config, onEvent, log }) {
 
     readBody(req, maxBodyBytes)
       .then((rawBody) => {
-        if (secret !== null && !verifySignature(rawBody, req.headers[SIGNATURE_HEADER], secret)) {
+        const delivery = readDeliveryHeaders(req.headers);
+        if (secret !== null && !verifySignature(rawBody, delivery.signature, secret)) {
           log.warn("rejected delivery: signature missing or invalid", {
-            event: req.headers[EVENT_HEADER],
-            deliveryId: req.headers[DELIVERY_HEADER],
+            event: delivery.event,
+            deliveryId: delivery.deliveryId,
           });
           respond(res, 401, "invalid signature\n");
           return;
