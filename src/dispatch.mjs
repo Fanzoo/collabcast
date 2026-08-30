@@ -22,8 +22,8 @@ function backoffFor(attempt, baseMs) {
 /**
  * Deliver one message to one target, retrying transient failures.
  *
- * Collabcast acknowledges a Collaboard delivery before it forwards anything, which
- * keeps a slow destination from making Collaboard retry (and so from duplicating
+ * Collabcast acknowledges a Collattice delivery before it forwards anything, which
+ * keeps a slow destination from making Collattice retry (and so from duplicating
  * messages). The cost of acking early is that a failed send is ours to own — which
  * is what this retry loop is for.
  *

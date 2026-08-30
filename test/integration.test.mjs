@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { once } from "node:events";
 
 /**
- * End-to-end: a signed Collaboard delivery arrives at a real Collabcast process and
+ * End-to-end: a signed Collattice delivery arrives at a real Collabcast process and
  * comes out the other side as a Matrix message, verified against a stub homeserver.
  */
 
@@ -62,7 +62,7 @@ async function listen(server) {
 }
 
 /**
- * Collabcast rejects port 0 on purpose — Collaboard has to dial the receiver, so a
+ * Collabcast rejects port 0 on purpose — Collattice has to dial the receiver, so a
  * port nobody can predict is a misconfiguration. Borrow a real free port instead.
  */
 async function freePort() {
@@ -120,7 +120,7 @@ const post = (origin, payload) => {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "User-Agent": "Collaboard-Webhooks",
+      "User-Agent": "Collattice-Webhooks",
       "X-Collaboard-Event": payload.event,
       "X-Collaboard-Delivery-Id": payload.eventId,
       "X-Collaboard-Signature": sign(Buffer.from(body)),
@@ -157,7 +157,7 @@ test("a signed delivery becomes a Matrix message", async (t) => {
     configPath,
     JSON.stringify({
       logLevel: "debug",
-      collaboard: { baseUrl: "http://board.example.org:8080" },
+      collattice: { baseUrl: "http://board.example.org:8080" },
       listen: { host: "127.0.0.1", port: bridgePort, path: "/collabcast" },
       signing: { secret: "env:COLLABCAST_SIGNING_SECRET" },
       delivery: { attempts: 2, backoffMs: 10 },

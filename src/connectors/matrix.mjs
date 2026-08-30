@@ -19,7 +19,7 @@ export const label = "Matrix";
  * @property {string} room A room id (`!abc:example.org`) or alias (`#room:example.org`).
  * @property {"m.notice" | "m.text"} msgtype
  * @property {number} timeoutMs Per-request timeout against the homeserver.
- * @property {boolean} includeOccurredAt Append Collaboard's `occurredAt` to each message.
+ * @property {boolean} includeOccurredAt Append Collattice's `occurredAt` to each message.
  */
 
 const DEFAULTS = {
@@ -168,7 +168,7 @@ export function open(options, ctx) {
 
   /**
    * A Matrix transaction id makes a send idempotent for a given access token, so
-   * deriving it from the Collaboard event id gives a second line of defense
+   * deriving it from the Collattice event id gives a second line of defense
    * against duplicate deliveries — one that survives a Collabcast restart, which
    * the in-process dedupe set does not. The target name is folded in so two
    * targets pointing at different rooms don't collide.

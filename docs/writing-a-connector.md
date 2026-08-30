@@ -1,6 +1,6 @@
 # Writing a connector
 
-A **connector** is a module that knows how to deliver a Collaboard event to one outside
+A **connector** is a module that knows how to deliver a Collattice event to one outside
 system. A **target** is a named, configured instance of one. Collabcast's core handles
 receiving, verifying, deduplicating, routing, and retrying — a connector's only job is to
 take one event and put it somewhere.
@@ -108,13 +108,13 @@ to think about formatting:
 
 ```js
 {
-  id: "01J9ZQK8H6F4N3M2P7R5T8V0XW",   // ULID, stable across Collaboard retries
+  id: "01J9ZQK8H6F4N3M2P7R5T8V0XW",   // ULID, stable across Collattice retries
   type: "card.moved",
   version: "1",
   occurredAt: "2026-06-18T16:42:25.770Z",
   board: { id: "f6fa...", slug: "research" },   // both null on a ping
   actor: { id: "52df...", name: "Alex Rivera", role: "Administrator", isHuman: true },
-  data: { /* the per-event payload, exactly as Collaboard sent it */ },
+  data: { /* the per-event payload, exactly as Collattice sent it */ },
   raw:  { /* the entire original body */ },
 }
 ```
@@ -187,12 +187,12 @@ harness to call it.
 
 ## If your connector writes back
 
-Everything above assumes a one-way connector: Collaboard event in, message out. If you
-write one that **creates or modifies Collaboard cards**, read this first.
+Everything above assumes a one-way connector: Collattice event in, message out. If you
+write one that **creates or modifies Collattice cards**, read this first.
 
 An automation that reacts to `card.created` by creating a card is a loop. The card it
 creates fires its own `card.created`, which triggers the automation, which creates another.
-Collaboard's integration guide is blunt that with agents in the mix this is a *when*, not an
+Collattice's integration guide is blunt that with agents in the mix this is a *when*, not an
 *if*.
 
 The break is `actor.role`, and Collabcast already implements it — put `humanActorsOnly` on
@@ -212,5 +212,5 @@ and a denylist naming `AgentUser` silently lets an `AgentAdministrator` through,
 a fresh leak the day a new agent role is added. `event.actor.isHuman` on the normalized event
 is computed the same way; use it rather than comparing role strings yourself.
 
-Also give the connector its own Collaboard user with an agent role, so the events it causes
+Also give the connector its own Collattice user with an agent role, so the events it causes
 are attributable and distinguishable from a person's.

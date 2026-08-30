@@ -155,7 +155,7 @@ test("an oversized body is rejected with 413", async () => {
       body,
     });
     // The refusal has to reach the client as a 413. A dropped connection would read
-    // as a transport failure, and Collaboard would retry a delivery that can never
+    // as a transport failure, and Collattice would retry a delivery that can never
     // succeed.
     assert.equal(response.status, 413);
     assert.equal((await response.text()).trim(), "payload too large");

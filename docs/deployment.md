@@ -4,22 +4,22 @@ Collabcast is a long-lived foreground process. It logs to stdout and stderr, rel
 on its own, and exits cleanly on `SIGTERM` — closing the listener, waiting up to ten seconds
 for in-flight deliveries, then stopping. Any supervisor can run it.
 
-Two things to settle before you pick one: **which address Collaboard will dial**, and **where
+Two things to settle before you pick one: **which address Collattice will dial**, and **where
 the secrets live**.
 
 ---
 
 ## Before you start: the URL
 
-Collaboard permanently refuses to deliver to loopback, so `http://localhost:9080` cannot be
-your webhook URL — not even when Collabcast runs on the same machine as Collaboard, which is
+Collattice permanently refuses to deliver to loopback, so `http://localhost:9080` cannot be
+your webhook URL — not even when Collabcast runs on the same machine as Collattice, which is
 the normal case. See
 [Reaching the receiver](../README.md#reaching-the-receiver) for the full picture and the
 table of what to use instead. The short version: address the host by its tailnet name, its
 LAN name, or its public name — anything but loopback.
 
 Bind to `0.0.0.0` (the default) so the receiver accepts the connection on whichever
-interface Collaboard arrives on.
+interface Collattice arrives on.
 
 ## Before you start: the secrets
 
@@ -63,7 +63,7 @@ Either way, don't put secrets on the command line — anyone who can run `ps` ca
 ```ini
 # /etc/systemd/system/collabcast.service
 [Unit]
-Description=Collabcast — Collaboard event bridge
+Description=Collabcast — Collattice event bridge
 # Ordering only; Collabcast starts fine whether or not these are up.
 After=network-online.target
 Wants=network-online.target
@@ -196,7 +196,7 @@ So, on a Mac with FileVault:
 
 - **Accept a manual unlock after a reboot.** Once you authenticate, macOS passes that through
   to log you in, and every LaunchAgent starts — Collabcast along with whatever else you run
-  this way. Simple, and consistent with how Collaboard itself is usually set up.
+  this way. Simple, and consistent with how Collattice itself is usually set up.
 - **For planned reboots, use `sudo fdesetup authrestart`.** It stashes the unlock key in
   memory for exactly one reboot, so the machine comes back with no console access — the right
   tool for a remote OS update. It does nothing for an unexpected power loss.
@@ -223,7 +223,7 @@ the systems it talks to are often starting at the same moment — a homeserver b
 container runtime can easily be a minute behind. Once traffic arrives, `dispatch` retries
 with backoff.
 
-The same goes for Collaboard. Collabcast is a passive listener, so Collaboard starting later
+The same goes for Collattice. Collabcast is a passive listener, so Collattice starting later
 is a non-event; the first delivery simply arrives whenever it arrives. No `After=` ordering,
 no startup sleep, no dependency declaration is required for correctness — the `After=` line in
 the systemd unit above is tidiness, not a requirement.
@@ -236,14 +236,14 @@ curl -s http://localhost:9080/healthz     # -> ok
 ```
 
 `/healthz` needs no signature. It's fine to hit over loopback — that restriction is on
-Collaboard's *outbound* deliveries, not on you.
+Collattice's *outbound* deliveries, not on you.
 
 ```bash
 # 2. The config is what you think it is.
 node src/index.mjs --check --config /path/to/config.json
 ```
 
-3. Send a test delivery from Collaboard's **Admin → Webhooks** screen. A success there proves
+3. Send a test delivery from Collattice's **Admin → Webhooks** screen. A success there proves
    the URL is reachable and the signature matches. Watch the log:
 
 ```
@@ -257,7 +257,7 @@ node src/index.mjs --check --config /path/to/config.json
 
 If a delivery isn't arriving, the two places to look are Collabcast's log at
 `logLevel: "debug"` — which logs routing decisions, dropped duplicates, and events no route
-matched — and Collaboard's own delivery log, which records every attempt with its status code
+matched — and Collattice's own delivery log, which records every attempt with its status code
 and error:
 
 ```
@@ -266,4 +266,4 @@ GET /api/v1/webhooks/deliveries?subscriptionId={id}
 
 A run of `Failed` rows there with no corresponding line in Collabcast's log means the request
 never arrived: check the URL isn't loopback, and that the port is reachable from the
-Collaboard host.
+Collattice host.

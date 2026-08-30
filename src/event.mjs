@@ -1,10 +1,10 @@
 import { HUMAN_ROLES, PING } from "./events.mjs";
 
 /**
- * Turn a raw Collaboard delivery body into the shape the rest of Collabcast works
+ * Turn a raw Collattice delivery body into the shape the rest of Collabcast works
  * with. Deliberately lenient: it reads the fields it needs and ignores the rest,
  * because the contract says new fields may be added within `version: "1"` and a
- * strict reader would break the first time Collaboard adds one.
+ * strict reader would break the first time Collattice adds one.
  *
  * `data` is passed through untouched so a connector can reach anything the
  * normalizer does not lift out.
@@ -112,7 +112,7 @@ function cardRef(card) {
 }
 
 /**
- * A Collaboard deep link to the card, when the operator told us the board's base
+ * A Collattice deep link to the card, when the operator told us the board's base
  * URL. Card numbers are scoped per board, so both the slug and the number are
  * required to build one.
  */
@@ -222,7 +222,7 @@ function describe(event, baseUrl) {
       return line("ping", data.message ? ` — ${data.message}` : "");
 
     default:
-      // An event type added by a future Collaboard version, matched by a "*" route.
+      // An event type added by a future Collattice version, matched by a "*" route.
       return line(String(event.type ?? "unknown event"));
   }
 }

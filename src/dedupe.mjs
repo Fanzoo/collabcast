@@ -1,5 +1,5 @@
 /**
- * Collaboard delivery is at-least-once: a retry after a flaky response can deliver
+ * Collattice delivery is at-least-once: a retry after a flaky response can deliver
  * the same event twice, and the `eventId` (a ULID) is stable across retries. This
  * is a bounded FIFO memory of recently-seen ids — enough to absorb a retry storm
  * without growing without limit.

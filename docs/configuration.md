@@ -56,7 +56,7 @@ world outside: a revoked token, a room the bot was removed from, a homeserver th
 {
   "logLevel": "info",
 
-  "collaboard": {
+  "collattice": {
     "baseUrl": "https://board.example.org"
   },
 
@@ -86,7 +86,7 @@ world outside: a revoked token, a room the bot was removed from, a homeserver th
       "enabled": true,
       "homeserver": "https://matrix.example.org",
       "accessToken": "env:MATRIX_ACCESS_TOKEN",
-      "room": "#collaboard:example.org"
+      "room": "#collattice:example.org"
     }
   },
 
@@ -107,7 +107,7 @@ world outside: a revoked token, a room the bot was removed from, a homeserver th
 
 Only `targets` and `routes` are required. Everything else has a working default, except
 `signing.secret` — which has no default because there's no safe one to pick, and
-`collaboard.baseUrl`, which is purely cosmetic.
+`collattice.baseUrl`, which is purely cosmetic.
 
 The per-setting reference table lives in
 [the README](../README.md#full-settings-reference). What follows is the parts that need more
@@ -154,7 +154,7 @@ For where to put the environment itself under a supervisor, see
 
 ## `signing.secret`
 
-The HMAC key, which must match the secret on the Collaboard subscription exactly. Generate
+The HMAC key, which must match the secret on the Collattice subscription exactly. Generate
 one:
 
 ```bash
@@ -171,7 +171,7 @@ When it's unset, deliveries are accepted unverified and Collabcast warns at star
 
 ```
 [WRN] no signing.secret configured — deliveries are accepted without signature verification.
-      Set a secret here and on the Collaboard subscription.
+      Set a secret here and on the Collattice subscription.
 ```
 
 That's supported for a first five minutes on a trusted network, but anyone who can reach the
@@ -182,10 +182,10 @@ A secret shorter than 16 characters is rejected outright rather than accepted we
 ## `listen`
 
 `host` defaults to `0.0.0.0` so the receiver answers on every interface. That is almost
-always what you want, because the address Collaboard is allowed to dial usually isn't
+always what you want, because the address Collattice is allowed to dial usually isn't
 loopback — see [Reaching the receiver](../README.md#reaching-the-receiver).
 
-`port` **rejects 0.** In most servers 0 means "let the OS choose", but Collaboard has to dial
+`port` **rejects 0.** In most servers 0 means "let the OS choose", but Collattice has to dial
 this receiver at a URL you registered in advance, so an unpredictable port is a
 misconfiguration rather than a convenience.
 
@@ -209,15 +209,15 @@ Two things shorten that loop:
   destination asking for an hour would park the delivery — and everything queued behind it —
   for an hour.
 
-This retry loop exists because Collabcast acknowledges Collaboard *before* forwarding. That
-ordering keeps a slow destination from making Collaboard retry — which would duplicate
+This retry loop exists because Collabcast acknowledges Collattice *before* forwarding. That
+ordering keeps a slow destination from making Collattice retry — which would duplicate
 messages — but it transfers ownership of a failed send to Collabcast. Retries are the other
 half of that trade. See
 [How it works](../README.md#how-it-works).
 
 ## `dedupe.capacity`
 
-How many recent `eventId`s to remember. Collaboard delivery is at-least-once and the id is
+How many recent `eventId`s to remember. Collattice delivery is at-least-once and the id is
 stable across retries of one event, so this absorbs re-deliveries.
 
 The default 2048 is far more than a retry storm needs. It's bounded on purpose, so a
@@ -239,7 +239,7 @@ board actually emits before you decide what you care about.
 { "name": "firehose", "when": { "events": ["*"] }, "to": ["team-chat"] }
 ```
 
-`"*"` also picks up event types added in future Collaboard versions with no config change. An
+`"*"` also picks up event types added in future Collattice versions with no config change. An
 event type this build has never seen still renders, using its type name.
 
 **Only the transitions that matter** — quieter than every move.
@@ -338,19 +338,19 @@ Read them in order:
 
 - **`no route matched`** — the delivery arrived and verified, and no route wanted it. Check the
   event type against your `events` list, and the board slug against `boards`.
-- **`duplicate delivery ignored`** — Collaboard re-delivered an event Collabcast already
+- **`duplicate delivery ignored`** — Collattice re-delivered an event Collabcast already
   handled. Expected, and not a problem.
 - **`rejected delivery: signature missing or invalid`** — the secret here and the secret on the
   subscription don't match. The subscription's secret is write-only and can't be read back;
   re-set it on both sides.
 - **Nothing at all in the log** — the request never arrived. The URL is the first suspect
-  (loopback can't work), then the port's reachability from the Collaboard host. Collaboard's own
+  (loopback can't work), then the port's reachability from the Collattice host. Collattice's own
   delivery log will show the attempts and why they failed:
   `GET /api/v1/webhooks/deliveries?subscriptionId={id}`.
 - **`delivered`, but nothing in the destination** — for Matrix, the usual cause is an encrypted
   room: the message arrives but can't be decrypted by anyone. Use an unencrypted room.
 
-One thing the log can't show you: an event Collaboard dropped before it ever attempted delivery.
-Its queue is in memory, so an event pending when the Collaboard API restarts is gone, without
+One thing the log can't show you: an event Collattice dropped before it ever attempted delivery.
+Its queue is in memory, so an event pending when the Collattice API restarts is gone, without
 even a failed-attempt row on its side. Rare, and the card is still sitting on the board — but
 it's why this is a notifier and not an audit log.
