@@ -39,7 +39,7 @@ function parseArgs(argv) {
 }
 
 function usage() {
-  return `collabcast — a bridge between Collaboard board events and the systems you already use.
+  return `collabcast — a bridge between Collattice board events and the systems you already use.
 
 Usage:
   collabcast [--config <path>]     Start the receiver.
@@ -145,7 +145,7 @@ async function main() {
       return;
     }
 
-    const message = { event, summary: summarize(event, { baseUrl: config.collaboard.baseUrl }) };
+    const message = { event, summary: summarize(event, { baseUrl: config.collattice.baseUrl }) };
     log.debug("routed", {
       event: event.type,
       eventId: event.id,

@@ -1,8 +1,8 @@
 import { createServer } from "node:http";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-// Collattice v3 renamed the delivery headers from `X-Collaboard-*` to `X-Collattice-*`
-// as part of the Collaboard → Collattice rename. Both spellings are read, current first.
+// Collattice v3 renamed the delivery headers from `X-Collattice-*` to `X-Collattice-*`
+// as part of the Collattice → Collattice rename. Both spellings are read, current first.
 //
 // Reading only the old names is exactly how this broke on the v2 → v3 upgrade, and the
 // failure is worth remembering: an unrecognised signature header arrives as `undefined`,
@@ -41,7 +41,7 @@ export function readDeliveryHeaders(headers) {
 }
 
 /**
- * Verify a Collaboard delivery signature: HMAC-SHA256 over the exact raw bytes of
+ * Verify a Collattice delivery signature: HMAC-SHA256 over the exact raw bytes of
  * the request body, keyed by the shared secret, compared in constant time.
  *
  * The bytes must be the ones that arrived — never a re-serialized copy of the
@@ -73,7 +73,7 @@ function readBody(req, limit) {
         const error = new Error(`body exceeds ${limit} bytes`);
         error.tooLarge = true;
         // Stop reading, but leave the socket alive: the caller still has to write a
-        // 413, and destroying here would take the response down with it — Collaboard
+        // 413, and destroying here would take the response down with it — Collattice
         // would see a transport failure and retry a delivery that can never succeed.
         // Pausing applies TCP backpressure, so the rest of the upload isn't buffered.
         req.removeAllListeners("data");
@@ -140,10 +140,10 @@ function respond(res, status, body = "", headers = {}) {
 }
 
 /**
- * The HTTP surface Collaboard posts to.
+ * The HTTP surface Collattice posts to.
  *
  * `onEvent` is called with the parsed body *after* the response has already been
- * sent. That ordering is deliberate: Collaboard's per-POST delivery timeout is a
+ * sent. That ordering is deliberate: Collattice's per-POST delivery timeout is a
  * few seconds and a slow endpoint is recorded as a failed attempt, which triggers
  * retries — so waiting on a destination here would turn destination latency into
  * duplicate messages.

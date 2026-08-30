@@ -1,7 +1,7 @@
 {
   "name": "collabcast",
   "version": "0.1.0",
-  "description": "A bridge between Collaboard board events and the systems you already use.",
+  "description": "A bridge between Collattice board events and the systems you already use.",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -27,7 +27,7 @@
     "verify": "npm run typecheck && npm test"
   },
   "keywords": [
-    "collaboard",
+    "collattice",
     "webhooks",
     "matrix",
     "bridge",

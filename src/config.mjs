@@ -63,7 +63,7 @@ function validate(raw) {
   // A section written as something other than an object — `"listen": "0.0.0.0:9080"`,
   // a plausible typo — spreads to nothing, so without this it would pass every check
   // below and the process would quietly run on the defaults the operator overrode.
-  for (const key of ["collaboard", "listen", "signing", "delivery", "dedupe"]) {
+  for (const key of ["collattice", "collaboard", "listen", "signing", "delivery", "dedupe"]) {
     if (raw[key] !== undefined && !isPlainObject(raw[key])) fail(`${key} must be an object`);
   }
   const section = (key) => (isPlainObject(raw[key]) ? raw[key] : {});
@@ -71,7 +71,7 @@ function validate(raw) {
   /** @type {import("../types.js").Config} */
   const config = {
     logLevel: raw.logLevel ?? DEFAULTS.logLevel,
-    collaboard: { baseUrl: null },
+    collattice: { baseUrl: null },
     listen: { ...DEFAULTS.listen, ...section("listen") },
     signing: { secret: section("signing").secret ?? null },
     delivery: { ...DEFAULTS.delivery, ...section("delivery") },
@@ -85,18 +85,36 @@ function validate(raw) {
     fail(`logLevel must be one of ${levelNames().join(", ")} — got "${config.logLevel}"`);
   }
 
-  // collaboard.baseUrl is optional; it only enables deep links back to the board.
-  const baseUrl = section("collaboard").baseUrl ?? null;
+  // collattice.baseUrl is optional; it only enables deep links back to the board.
+  //
+  // `collaboard` is the section's pre-rename name and is still accepted, because
+  // renaming it outright would invalidate every deployed config.json on the day the
+  // board was upgraded — the same class of break as the delivery-header rename, and
+  // one the operator would meet as a refusal to start rather than as a warning. The
+  // legacy name warns; naming both is an error rather than a silent precedence rule,
+  // since a config carrying two different base URLs has no obviously right reading.
+  const legacyBoardSection = isPlainObject(raw.collaboard);
+  const currentBoardSection = isPlainObject(raw.collattice);
+  if (legacyBoardSection && currentBoardSection) {
+    fail('config has both "collattice" and "collaboard" sections — keep collattice and delete collaboard');
+  }
+  const boardKey = currentBoardSection ? "collattice" : "collaboard";
+  const baseUrl = section(boardKey).baseUrl ?? null;
   if (baseUrl !== null) {
-    if (typeof baseUrl !== "string") fail("collaboard.baseUrl must be a string");
+    if (typeof baseUrl !== "string") fail(`${boardKey}.baseUrl must be a string`);
     else {
       try {
         new URL(baseUrl);
-        config.collaboard.baseUrl = baseUrl.replace(/\/+$/, "");
+        config.collattice.baseUrl = baseUrl.replace(/\/+$/, "");
       } catch {
-        fail(`collaboard.baseUrl is not a valid URL: ${baseUrl}`);
+        fail(`${boardKey}.baseUrl is not a valid URL: ${baseUrl}`);
       }
     }
+  }
+  if (legacyBoardSection && !currentBoardSection) {
+    config.warnings.push(
+      'config section "collaboard" is the pre-rename name — rename it to "collattice"; it will keep working for now',
+    );
   }
 
   const { listen } = config;
@@ -221,7 +239,7 @@ function validate(raw) {
   if (config.signing.secret === null) {
     config.warnings.push(
       "no signing.secret configured — deliveries are accepted without signature verification. " +
-        "Set a secret here and on the Collaboard subscription.",
+        "Set a secret here and on the Collattice subscription.",
     );
   }
   for (const route of config.routes) {
@@ -257,7 +275,7 @@ export function describeConfig(config) {
   return {
     listen: `${config.listen.host}:${config.listen.port}${config.listen.path}`,
     signed: config.signing.secret !== null,
-    deepLinks: config.collaboard.baseUrl ?? "(disabled)",
+    deepLinks: config.collattice.baseUrl ?? "(disabled)",
     targets: Object.values(config.targets).map(
       (t) => `${t.name} (${t.connectorId}${t.enabled ? "" : ", disabled"})`,
     ),

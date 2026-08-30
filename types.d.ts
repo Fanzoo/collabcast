@@ -17,10 +17,10 @@
 // Events
 // ---------------------------------------------------------------------------
 
-/** The roles Collaboard reports in an event's `actor`. */
+/** The roles Collattice reports in an event's `actor`. */
 export type ActorRole = "Administrator" | "HumanUser" | "AgentUser" | "AgentAdministrator";
 
-/** The 22 Collaboard event types, plus the test-delivery ping. */
+/** The 22 Collattice event types, plus the test-delivery ping. */
 export type KnownEventType =
   | "card.created"
   | "card.moved"
@@ -49,7 +49,7 @@ export type KnownEventType =
 /**
  * A known event type, or any other string.
  *
- * Deliberately open: Collaboard may add event types this build has never heard
+ * Deliberately open: Collattice may add event types this build has never heard
  * of, a `"*"` route will forward them, and a connector must be able to compare
  * against one without a cast. The union still drives autocomplete.
  */
@@ -59,13 +59,13 @@ export type EventType = KnownEventType | (string & {});
 export type EventSelector = EventType | "*";
 
 export interface Actor {
-  /** Collaboard user id (GUID), or null when the event carries no actor. */
+  /** Collattice user id (GUID), or null when the event carries no actor. */
   id: string | null;
   name: string | null;
   /**
-   * The role name as Collaboard sent it.
+   * The role name as Collattice sent it.
    *
-   * Open on purpose — Collaboard may add roles, and a closed union would turn a
+   * Open on purpose — Collattice may add roles, and a closed union would turn a
    * perfectly real role into a compile error. The cost is that a *typo* in a
    * comparison (`"HumanUsr"`) is not caught either, which is one more reason to
    * branch on {@link Actor.isHuman} rather than on this string.
@@ -88,10 +88,10 @@ export interface BoardRef {
   slug: string | null;
 }
 
-/** A Collaboard delivery, normalized. What a connector receives. */
+/** A Collattice delivery, normalized. What a connector receives. */
 export interface CollabcastEvent {
   /**
-   * Collaboard's `eventId` (a ULID), stable across retries of the same event —
+   * Collattice's `eventId` (a ULID), stable across retries of the same event —
    * so it doubles as an idempotency key for a destination that accepts one.
    */
   id: string | null;
@@ -103,7 +103,7 @@ export interface CollabcastEvent {
   board: BoardRef;
   actor: Actor;
   /**
-   * The per-event payload, passed through exactly as Collaboard sent it. Shapes
+   * The per-event payload, passed through exactly as Collattice sent it. Shapes
    * differ per event family; read it leniently and ignore what you don't know,
    * because fields may be added within a contract version.
    */
@@ -125,7 +125,7 @@ export interface Summary {
   icon: string;
   /** `[research] moved #321 Investigate flaky test from Doing to Ready · Alex Rivera` */
   text: string;
-  /** The same line with `<b>`, `<i>`, and — when `collaboard.baseUrl` is set — `<a>`. */
+  /** The same line with `<b>`, `<i>`, and — when `collattice.baseUrl` is set — `<a>`. */
   html: string;
 }
 
@@ -249,7 +249,7 @@ export interface LiveTarget extends ResolvedTarget {
 /** The validated configuration. */
 export interface Config {
   logLevel: LogLevel;
-  collaboard: { baseUrl: string | null };
+  collattice: { baseUrl: string | null };
   listen: { host: string; port: number; path: string; maxBodyBytes: number };
   signing: { secret: string | null };
   delivery: { attempts: number; backoffMs: number };

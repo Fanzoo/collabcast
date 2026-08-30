@@ -1,8 +1,8 @@
 {
   "logLevel": "info",
 
-  "collaboard": {
-    "baseUrl": "http://collaboard.example.org:8080"
+  "collattice": {
+    "baseUrl": "http://collattice.example.org:8080"
   },
 
   "listen": {
@@ -20,7 +20,7 @@
       "connector": "matrix",
       "homeserver": "http://127.0.0.1:8008",
       "accessToken": "env:MATRIX_ACCESS_TOKEN",
-      "room": "#collaboard:example.org"
+      "room": "#collattice:example.org"
     }
   },
 

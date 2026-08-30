@@ -138,14 +138,29 @@ test("a disabled target warns the routes that point only at it", async () => {
   assert.match(config.warnings.join(" "), /points only at disabled targets/);
 });
 
-test("collaboard.baseUrl is optional and normalized", async () => {
+test("the pre-rename collaboard section still loads, with a warning", async () => {
+  // Renaming the section outright would have invalidated every deployed config.json
+  // the day the board was upgraded. Accepted, warned about, never silently ignored.
+  const legacy = await loadConfig(await write({ ...valid, collaboard: { baseUrl: "http://board.example.org:8080/" } }));
+  assert.equal(legacy.collattice.baseUrl, "http://board.example.org:8080");
+  assert.match(legacy.warnings.join(" "), /pre-rename name/);
+});
+
+test("naming both collattice and collaboard is an error, not a precedence rule", async () => {
+  await rejects(
+    await write({ ...valid, collattice: { baseUrl: "http://a.example.org" }, collaboard: { baseUrl: "http://b.example.org" } }),
+    /both "collattice" and "collaboard"/,
+  );
+});
+
+test("collattice.baseUrl is optional and normalized", async () => {
   const off = await loadConfig(await write(valid));
-  assert.equal(off.collaboard.baseUrl, null);
+  assert.equal(off.collattice.baseUrl, null);
 
-  const on = await loadConfig(await write({ ...valid, collaboard: { baseUrl: "http://board.example.org:8080/" } }));
-  assert.equal(on.collaboard.baseUrl, "http://board.example.org:8080");
+  const on = await loadConfig(await write({ ...valid, collattice: { baseUrl: "http://board.example.org:8080/" } }));
+  assert.equal(on.collattice.baseUrl, "http://board.example.org:8080");
 
-  await rejects(await write({ ...valid, collaboard: { baseUrl: "nonsense" } }), /not a valid URL/);
+  await rejects(await write({ ...valid, collattice: { baseUrl: "nonsense" } }), /not a valid URL/);
 });
 
 test("the shipped example config is valid", async () => {
@@ -167,5 +182,5 @@ test("a section written as something other than an object is rejected", async ()
   await rejects(await write({ ...valid, listen: "0.0.0.0:9080" }), /listen must be an object/);
   await rejects(await write({ ...valid, delivery: 4 }), /delivery must be an object/);
   await rejects(await write({ ...valid, dedupe: [2048] }), /dedupe must be an object/);
-  await rejects(await write({ ...valid, collaboard: "http://board.example.org" }), /collaboard must be an object/);
+  await rejects(await write({ ...valid, collattice: "http://board.example.org" }), /collattice must be an object/);
 });

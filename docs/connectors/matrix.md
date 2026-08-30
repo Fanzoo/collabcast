@@ -110,7 +110,7 @@ Then invite the bot from your account, and accept from the bot's:
 ```bash
 # Accept the invite as the bot. Works with a room id or an alias.
 curl -s -X POST \
-  "https://matrix.example.org/_matrix/client/v3/join/%23collaboard%3Aexample.org" \
+  "https://matrix.example.org/_matrix/client/v3/join/%23collattice%3Aexample.org" \
   -H "Authorization: Bearer $MATRIX_ACCESS_TOKEN" \
   -H "Content-Type: application/json" -d '{}'
 ```
@@ -139,7 +139,7 @@ Note the `#` in an alias must be percent-encoded as `%23` and the `:` as `%3A` i
       "connector": "matrix",
       "homeserver": "https://matrix.example.org",
       "accessToken": "env:MATRIX_ACCESS_TOKEN",
-      "room": "#collaboard:example.org"
+      "room": "#collattice:example.org"
     }
   }
 }
@@ -149,10 +149,10 @@ Note the `#` in an alias must be percent-encoded as `%23` and the `:` as `%3A` i
 |--------|---------|-------------|
 | `homeserver` | *(required)* | Client API base URL, `http` or `https`. If the homeserver runs on the same host, its loopback address is fine — this is Collabcast dialling out, so the inbound restriction in [Reaching the receiver](../../README.md#reaching-the-receiver) does not apply here. |
 | `accessToken` | *(required)* | The bot's access token. Write it as `env:NAME`. |
-| `room` | *(required)* | A room id (`!AbCdEf:example.org`) or an alias (`#collaboard:example.org`). An alias is resolved once at startup and reused. |
+| `room` | *(required)* | A room id (`!AbCdEf:example.org`) or an alias (`#collattice:example.org`). An alias is resolved once at startup and reused. |
 | `msgtype` | `m.notice` | `m.notice` or `m.text`. |
 | `timeoutMs` | `10000` | Per-request timeout against the homeserver. |
-| `includeOccurredAt` | `false` | Append Collaboard's `occurredAt` to each message. Off by default because your client already shows an arrival time; turn it on if you care about the difference (see [Ordering](#ordering) below). |
+| `includeOccurredAt` | `false` | Append Collattice's `occurredAt` to each message. Off by default because your client already shows an arrival time; turn it on if you care about the difference (see [Ordering](#ordering) below). |
 
 **Why `m.notice` is the default.** Notices render muted in most clients and are excluded
 from other bots' trigger rules by convention — so a busy board doesn't shout, and a
@@ -166,7 +166,7 @@ skips one API call at startup and can't break if someone removes the alias. If y
 alias, Collabcast resolves it once and logs the result:
 
 ```
-2026-07-25T12:00:00.000Z [INF] resolved room alias target=team-chat alias=#collaboard:example.org roomId=!AbCdEf:example.org
+2026-07-25T12:00:00.000Z [INF] resolved room alias target=team-chat alias=#collattice:example.org roomId=!AbCdEf:example.org
 ```
 
 ---
@@ -186,13 +186,13 @@ reads correctly in every client.
 The board slug is in brackets, the actor is on the end, and an actor that isn't a human
 role is marked `(agent)`. Every event family has a form — cards, comments, labels,
 attachments, lanes, and boards — and an event type this version has never heard of still
-renders, using its type name, so a `"*"` route won't produce blanks after a Collaboard
+renders, using its type name, so a `"*"` route won't produce blanks after a Collattice
 upgrade.
 
-Set `collaboard.baseUrl` and the card reference becomes a link straight to the card:
+Set `collattice.baseUrl` and the card reference becomes a link straight to the card:
 
 ```jsonc
-{ "collaboard": { "baseUrl": "https://board.example.org" } }
+{ "collattice": { "baseUrl": "https://board.example.org" } }
 ```
 
 Card names are HTML-escaped on the way in, so a card titled `<img src=x onerror=...>`
@@ -200,7 +200,7 @@ shows up as text rather than becoming markup in anyone's client.
 
 ### Ordering
 
-Collaboard delivery is best-effort and not strictly ordered, so two events can arrive out
+Collattice delivery is best-effort and not strictly ordered, so two events can arrive out
 of the order they happened, and Collabcast posts on arrival rather than buffering to
 reorder. In practice the skew is small and each message is self-contained. If you need to
 see the real order, turn on `includeOccurredAt` — the authoritative server-side timestamp
@@ -222,7 +222,7 @@ purpose. The bridge and its destinations often come up at the same moment, and a
 that isn't ready yet shouldn't stop the receiver from accepting events. The retry loop
 picks it up when traffic arrives.
 
-Then send a test delivery from Collaboard's **Admin → Webhooks** screen (or the
+Then send a test delivery from Collattice's **Admin → Webhooks** screen (or the
 `test_webhook` MCP tool). A `webhook.ping` is delivery-only — board activity never produces
 one and a subscription can't select it — so it reaches the receiver but only lands in chat
 if a route names it:
@@ -231,7 +231,7 @@ if a route names it:
 { "name": "pings", "when": { "events": ["webhook.ping"] }, "to": ["team-chat"] }
 ```
 
-Without that route the ping still proves the useful half: that Collaboard reached you and
+Without that route the ping still proves the useful half: that Collattice reached you and
 the signature verified. Watch for it at `logLevel: "debug"`.
 
 ## When it breaks
