@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 
-import { createReceiver, verifySignature } from "../src/receiver.mjs";
+import { createReceiver, verifySignature, readDeliveryHeaders } from "../src/receiver.mjs";
 
 const SECRET = "a-test-secret-that-is-long-enough";
 const sign = (body, secret = SECRET) => `sha256=${createHmac("sha256", secret).update(body).digest("hex")}`;
@@ -47,6 +47,45 @@ test("verifySignature is computed over the received bytes, not a reparse", () =>
   const header = sign(received);
   assert.equal(verifySignature(received, header, SECRET), true);
   assert.equal(verifySignature(reserialized, header, SECRET), false);
+});
+
+test("a delivery signed with the current X-Collattice-* headers is accepted", async () => {
+  // The v3 rename. Reading only the legacy names answered every one of these 401,
+  // which is the regression this guards.
+  const seen = [];
+  await withServer(baseConfig, (payload) => seen.push(payload), async (origin) => {
+    const body = JSON.stringify({ event: "card.created", eventId: "01J" });
+    const response = await fetch(`${origin}/collabcast`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Collattice-Signature": sign(Buffer.from(body)),
+        "X-Collattice-Event": "card.created",
+        "X-Collattice-Delivery-Id": "01J",
+      },
+      body,
+    });
+    assert.equal(response.status, 204);
+  });
+  assert.deepEqual(seen, [{ event: "card.created", eventId: "01J" }]);
+});
+
+test("readDeliveryHeaders prefers the current name and falls back to the legacy one", () => {
+  assert.deepEqual(
+    readDeliveryHeaders({ "x-collattice-signature": "new", "x-collattice-event": "card.moved", "x-collattice-delivery-id": "01A" }),
+    { signature: "new", event: "card.moved", deliveryId: "01A" },
+  );
+  assert.deepEqual(
+    readDeliveryHeaders({ "x-collaboard-signature": "old", "x-collaboard-event": "card.moved", "x-collaboard-delivery-id": "01B" }),
+    { signature: "old", event: "card.moved", deliveryId: "01B" },
+  );
+  // Both present: the current name wins, so a sender emitting each spelling once
+  // cannot make the digest and the logged id disagree about which delivery this is.
+  assert.equal(
+    readDeliveryHeaders({ "x-collattice-signature": "new", "x-collaboard-signature": "old" }).signature,
+    "new",
+  );
+  assert.deepEqual(readDeliveryHeaders({}), { signature: undefined, event: undefined, deliveryId: undefined });
 });
 
 test("a correctly signed delivery is acknowledged and forwarded", async () => {
